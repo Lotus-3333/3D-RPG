@@ -11,6 +11,7 @@ public class PlayerController : MonoBehaviour
 
     private GameObject attackTarget;
     private float lastAttackTime;
+    private bool isDead;
 
     /// <summary>
     /// Awake is called when the script instance is being loaded.
@@ -30,7 +31,8 @@ public class PlayerController : MonoBehaviour
     {
         MouseManager.Instance.OnMouseClicked += MoveToTarget;
         MouseManager.Instance.OnEnemyClicked += EventAttack;
-        characterStats.MaxHealth = 2;
+
+        GameManager.Instance.RegisterPlayer(characterStats);
     }
 
     /// <summary>
@@ -38,6 +40,11 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     void Update()
     {
+        isDead = characterStats.CurrentHealth == 0;
+
+        if (isDead)
+            GameManager.Instance.NotifyObservers();
+
         SwitchAnimation();
 
         lastAttackTime -= Time.deltaTime;
@@ -46,20 +53,26 @@ public class PlayerController : MonoBehaviour
     public void SwitchAnimation()
     {
         anim.SetFloat("Speed", agent.velocity.sqrMagnitude);
+        anim.SetBool("Death", isDead);
     }
 
     public void MoveToTarget(Vector3 target)
     {
         StopAllCoroutines();
+        if (isDead) return;
+
         agent.isStopped = false;
         agent.destination = target;
     }
 
     private void EventAttack(GameObject target)
     {
+        if (isDead) return;
+
         if (target != null)
         {
             attackTarget = target;
+            characterStats.isCritical = UnityEngine.Random.value < characterStats.attackData.criticalChance;
             StartCoroutine(MoveToAttackTarget());
         }
     }
@@ -78,12 +91,20 @@ public class PlayerController : MonoBehaviour
 
         agent.isStopped = true;
         // Attack
-
         if (lastAttackTime < 0)
         {
+            anim.SetBool("Critical", characterStats.isCritical);
             anim.SetTrigger("Attack");
             // 重置冷却时间
-            lastAttackTime = 0.5f;
+            lastAttackTime = characterStats.attackData.coolDown;
         }
+    }
+
+    // Animation Event
+    void Hit()
+    {
+        var targetStats = attackTarget.GetComponent<CharacterStats>();
+
+        targetStats.TakeDamage(characterStats, targetStats);
     }
 }

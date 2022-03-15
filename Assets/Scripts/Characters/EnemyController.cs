@@ -5,11 +5,13 @@ using UnityEngine.AI;
 
 public enum EnemyStates { GUARD, PATROL, CHASE, DEAD }
 [RequireComponent(typeof(NavMeshAgent))]
-public class EnemyController : MonoBehaviour
+[RequireComponent(typeof(CharacterStats))]
+public class EnemyController : MonoBehaviour, IEndGameObserver
 {
     private EnemyStates enemyStates;
     private NavMeshAgent agent;
     private Animator anim;
+    private Collider coll;
 
     private CharacterStats characterStats;
 
@@ -17,10 +19,12 @@ public class EnemyController : MonoBehaviour
     public float sightRadius;
     public bool isGuard;
     private float speed;
-    private GameObject attackTarget;
+    protected GameObject attackTarget;
     public float lookAtTime;
     private float remainLookAtTime;
     private float lastAttackTime;
+
+    private Quaternion guardRotation;
 
     [Header("Patrol State")]
     public float patrolRange;
@@ -31,6 +35,8 @@ public class EnemyController : MonoBehaviour
     bool isWalk;
     bool isChase;
     bool isFollow;
+    bool isDead;
+    bool playerDead;
 
     /// <summary>
     /// Awake is called when the script instance is being loaded.
@@ -40,9 +46,11 @@ public class EnemyController : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         anim = GetComponent<Animator>();
         characterStats = GetComponent<CharacterStats>();
+        coll = GetComponent<Collider>();
 
         speed = agent.speed;
         guardPos = transform.position;
+        guardRotation = transform.rotation;
         remainLookAtTime = lookAtTime;
     }
 
@@ -61,6 +69,26 @@ public class EnemyController : MonoBehaviour
             enemyStates = EnemyStates.PATROL;
             GetNewWayPoint();
         }
+        // FIXME:场景切换后修改掉
+        GameManager.Instance.AddObserver(this);
+    }
+    //切换场景时启用
+    /* /// <summary>
+    /// This function is called when the object becomes enabled and active.
+    /// </summary>
+    void OnEnable()
+    {
+        GameManager.Instance.AddObserver(this);
+    } */
+
+    /// <summary>
+    /// This function is called when the behaviour becomes disabled or inactive.
+    /// </summary>
+    void OnDisable()
+    {
+        if (!GameManager.IsInitialized)
+            return;
+        GameManager.Instance.RemoveObserver(this);
     }
 
     /// <summary>
@@ -68,9 +96,15 @@ public class EnemyController : MonoBehaviour
     /// </summary>
     void Update()
     {
-        SwitchStates();
-        SwitchAnimation();
-        lastAttackTime -= Time.deltaTime;
+        if (characterStats.CurrentHealth == 0)
+            isDead = true;
+
+        if (!playerDead)
+        {
+            SwitchStates();
+            SwitchAnimation();
+            lastAttackTime -= Time.deltaTime;
+        }
     }
 
     void SwitchAnimation()
@@ -79,12 +113,16 @@ public class EnemyController : MonoBehaviour
         anim.SetBool("Chase", isChase);
         anim.SetBool("Follow", isFollow);
         anim.SetBool("Critical", characterStats.isCritical);
+        anim.SetBool("Death", isDead);
     }
 
     void SwitchStates()
     {
+        if (isDead)
+            enemyStates = EnemyStates.DEAD;
+
         // 如果发现playder 切换到CHASE
-        if (FoundPlayer())
+        else if (FoundPlayer())
         {
             enemyStates = EnemyStates.CHASE;
             // Debug.Log("找到Player");
@@ -93,6 +131,21 @@ public class EnemyController : MonoBehaviour
         switch (enemyStates)
         {
             case EnemyStates.GUARD:
+                isChase = false;
+
+
+                if (transform.position != guardPos)
+                {
+                    isWalk = true;
+                    agent.isStopped = false;
+                    agent.destination = guardPos;
+
+                    if (Vector3.SqrMagnitude(guardPos - transform.position) <= agent.stoppingDistance)
+                    {
+                        isWalk = false;
+                        transform.rotation = Quaternion.Lerp(transform.rotation, guardRotation, 0.01f);
+                    }
+                }
                 break;
             case EnemyStates.PATROL:
                 isChase = false;
@@ -114,7 +167,6 @@ public class EnemyController : MonoBehaviour
                 }
                 break;
             case EnemyStates.CHASE:
-                // TODO:配合动画
                 isWalk = false;
                 isChase = true;
 
@@ -139,7 +191,7 @@ public class EnemyController : MonoBehaviour
                     agent.isStopped = false;
                     agent.destination = attackTarget.transform.position;
                 }
-                // TODO:在攻击范围内则攻击
+                // 在攻击范围内则攻击
                 if (TargetInAttackRange() || TargetInSkillRange())
                 {
                     isFollow = false;
@@ -157,6 +209,10 @@ public class EnemyController : MonoBehaviour
                 }
                 break;
             case EnemyStates.DEAD:
+                coll.enabled = false;
+                // agent.enabled = false;
+                agent.radius = 0;
+                Destroy(gameObject, 2f);
                 break;
         }
     }
@@ -228,5 +284,27 @@ public class EnemyController : MonoBehaviour
     {
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(transform.position, sightRadius);
+    }
+
+    // Animation Event
+    void Hit()
+    {
+        if (attackTarget != null)
+        {
+            var targetStats = attackTarget.GetComponent<CharacterStats>();
+            targetStats.TakeDamage(characterStats, targetStats);
+        }
+    }
+
+    public void EndNotify()
+    {
+        // 获胜动画
+        // 停止所有移动
+        // 停止Agent
+        anim.SetBool("Win", true);
+        playerDead = true;
+        isChase = false;
+        isWalk = false;
+        attackTarget = null;
     }
 }
