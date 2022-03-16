@@ -384,6 +384,7 @@ GameObject:
   - component: {fileID: 628091994224246166}
   - component: {fileID: 628091994224246167}
   - component: {fileID: 826991387}
+  - component: {fileID: 6979550176385548703}
   m_Layer: 7
   m_Name: Slime
   m_TagString: Enemy
@@ -404,6 +405,7 @@ Transform:
   m_Children:
   - {fileID: 628422641197188625}
   - {fileID: 623256482953792817}
+  - {fileID: 791375835527553733}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 27.066, z: 0}
@@ -493,6 +495,22 @@ MonoBehaviour:
   characterData: {fileID: 0}
   attackData: {fileID: 11400000, guid: 99e4c6f5c7e020544bfd17bf8dfbd43a, type: 2}
   isCritical: 0
+--- !u!114 &6979550176385548703
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 627321803093425867}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f980cf933f046c45af8e77861767151, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  healthUIPrefab: {fileID: 491315141704672209, guid: 8c47b02054cb6704bb2c320ef85acc17, type: 3}
+  barPoint: {fileID: 791375835527553733}
+  alwaysVisible: 0
+  visibleTime: 3
 --- !u!1 &627391553760138973
 GameObject:
   m_ObjectHideFlags: 0
@@ -525,3 +543,33 @@ Transform:
   m_Father: {fileID: 628565142316257211}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: -5.204193e-15, y: 2.6397668e-14, z: -15.635608}
+--- !u!1 &8904710327000368640
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 791375835527553733}
+  m_Layer: 7
+  m_Name: HealthBar Point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &791375835527553733
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8904710327000368640}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 623243475172905191}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

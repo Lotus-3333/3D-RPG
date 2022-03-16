@@ -13,6 +13,8 @@ public class PlayerController : MonoBehaviour
     private float lastAttackTime;
     private bool isDead;
 
+    private float stopDistance;
+
     /// <summary>
     /// Awake is called when the script instance is being loaded.
     /// </summary>
@@ -21,6 +23,7 @@ public class PlayerController : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         anim = GetComponent<Animator>();
         characterStats = GetComponent<CharacterStats>();
+        stopDistance = agent.stoppingDistance;
     }
 
     /// <summary>
@@ -61,6 +64,7 @@ public class PlayerController : MonoBehaviour
         StopAllCoroutines();
         if (isDead) return;
 
+        agent.stoppingDistance = stopDistance;
         agent.isStopped = false;
         agent.destination = target;
     }
@@ -80,6 +84,7 @@ public class PlayerController : MonoBehaviour
     IEnumerator MoveToAttackTarget()
     {
         agent.isStopped = false;
+        agent.stoppingDistance = characterStats.attackData.attackRange;
 
         transform.LookAt(attackTarget.transform);
 
@@ -103,8 +108,20 @@ public class PlayerController : MonoBehaviour
     // Animation Event
     void Hit()
     {
-        var targetStats = attackTarget.GetComponent<CharacterStats>();
+        if (attackTarget.CompareTag("Attackable"))
+        {
+            if (attackTarget.GetComponent<Rock>() && attackTarget.GetComponent<Rock>().rockStates == Rock.RockStates.HitNothing)
+            {
+                attackTarget.GetComponent<Rock>().rockStates = Rock.RockStates.HitEnemy;
+                attackTarget.GetComponent<Rigidbody>().velocity = Vector3.one;
+                attackTarget.GetComponent<Rigidbody>().AddForce(transform.forward * 20, ForceMode.Impulse);
+            }
+        }
+        else
+        {
+            var targetStats = attackTarget.GetComponent<CharacterStats>();
 
-        targetStats.TakeDamage(characterStats, targetStats);
+            targetStats.TakeDamage(characterStats, targetStats);
+        }
     }
 }
